@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>匯率轉換</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c1116;
+    --panel: #121923;
+    --panel-2: #161f2b;
+    --line: #223041;
+    --text: #eef3f7;
+    --text-dim: #8d9bab;
+    --text-faint: #5a6a7c;
+    --accent: #35d0a4;
+    --accent-dim: #1f8d70;
+    --amber: #e3b568;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root:not([data-theme="light"]) {
+    /* dark is default above */
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f5f7;
+    --panel: #ffffff;
+    --panel-2: #f7f9fa;
+    --line: #dfe4e9;
+    --text: #10161d;
+    --text-dim: #55626f;
+    --text-faint: #8892a0;
+    --accent: #0e9a76;
+    --accent-dim: #0c7d61;
+    --amber: #a9741f;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f3f5f7;
+      --panel: #ffffff;
+      --panel-2: #f7f9fa;
+      --line: #dfe4e9;
+      --text: #10161d;
+      --text-dim: #55626f;
+      --text-faint: #8892a0;
+      --accent: #0e9a76;
+      --accent-dim: #0c7d61;
+      --amber: #a9741f;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 16px 64px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding: 0 2px;
+  }
+
+  .masthead h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0;
+    color: var(--text);
+  }
+
+  .masthead .clock {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+    align-items: end;
+    padding: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+    letter-spacing: 0.01em;
+  }
+
+  .combo {
+    position: relative;
+  }
+
+  .combo input.code-input {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .combo input.code-input:focus {
+    border-color: var(--accent-dim);
+  }
+
+  .combo .name-hint {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    min-height: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .combo .dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 20;
+    display: none;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] .combo .dropdown,
+  @supports (color: red) {}
+  .combo .dropdown.open { display: block; }
+
+  .combo .opt {
+    padding: 9px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .combo .opt:hover, .combo .opt.active {
+    background: rgba(53, 208, 164, 0.12);
+  }
+  .combo .opt .c {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--text);
+  }
+  .combo .opt .n {
+    color: var(--text-dim);
+    font-size: 12.5px;
+  }
+
+  .swap-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: color .15s ease, border-color .15s ease, transform .15s ease;
+  }
+  .swap-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+  .swap-btn:active {
+    transform: rotate(180deg);
+  }
+  .swap-btn svg { width: 16px; height: 16px; }
+
+  .amount-row {
+    padding: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .amount-row label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .amount-row input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 30px;
+    font-weight: 600;
+    padding: 0;
+    letter-spacing: 0.01em;
+  }
+  .amount-row input::-webkit-outer-spin-button,
+  .amount-row input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .result {
+    padding: 22px 20px 24px;
+    background: var(--panel-2);
+  }
+  .result .label {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .result .value {
+    font-family: var(--mono);
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+    word-break: break-all;
+  }
+  .result .value .code {
+    font-size: 16px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-left: 8px;
+  }
+
+  .rate-line {
+    padding: 12px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--line);
+  }
+
+  .footnote {
+    margin-top: 16px;
+    padding: 0 4px;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--text-faint);
+  }
+  .footnote a { color: var(--text-dim); }
+
+  .masthead-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-faint);
+    font-size: 10.5px;
+    padding: 4px 9px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-size: 10.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .refresh-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+  .refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .refresh-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+  .refresh-btn.spinning svg {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .status-line {
+    margin-top: 10px;
+    padding: 0 4px;
+    font-size: 11.5px;
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 16px;
+  }
+  .status-line.ok { color: var(--text-faint); }
+  .status-line.error { color: var(--amber); }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .status-line.error .status-dot { background: var(--amber); }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+    <h1>匯率轉換</h1>
+    <div class="masthead-actions">
+      <button class="refresh-btn" id="refreshBtn" title="重新查詢即時匯率">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span id="refreshLabel">更新匯率</span>
+      </button>
+      <button class="theme-toggle" id="themeToggle">深/淺色</button>
+    </div>
+  </div>
+
+  <div class="status-line ok" id="statusLine">
+    <span class="status-dot"></span>
+    <span id="statusText">正在查詢即時匯率…</span>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="field combo" id="fromCombo">
+        <label>來源幣別</label>
+        <input class="code-input" id="fromInput" autocomplete="off" spellcheck="false" value="USD" />
+        <div class="name-hint" id="fromName"></div>
+        <div class="dropdown" id="fromDropdown"></div>
+      </div>
+
+      <button class="swap-btn" id="swapBtn" title="交換幣別" aria-label="交換幣別">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+      </button>
+
+      <div class="field combo" id="toCombo">
+        <label>目的幣別</label>
+        <input class="code-input" id="toInput" autocomplete="off" spellcheck="false" value="TWD" />
+        <div class="name-hint" id="toName"></div>
+        <div class="dropdown" id="toDropdown"></div>
+      </div>
+    </div>
+
+    <div class="amount-row">
+      <label>金額</label>
+      <input type="number" id="amountInput" value="1" min="0" step="any" inputmode="decimal" />
+    </div>
+
+    <div class="result">
+      <div class="label">轉換結果</div>
+      <div class="value"><span id="resultValue">—</span><span class="code" id="resultCode"></span></div>
+    </div>
+
+    <div class="rate-line">
+      <span id="rateLine">—</span>
+      <span id="invRateLine">—</span>
+    </div>
+  </div>
+
+  <div class="footnote" id="footnote">
+    資料來源:<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">ExchangeRate-API</a>(open.er-api.com,以美元為基準,每日更新一次)。頁面載入時會自動即時查詢一次,亦可點右上角「更新匯率」手動重新查詢。若查詢失敗(例如離線或 API 暫時無回應),會自動退回顯示 <b id="fetchedAt"></b> 內嵌的備援匯率快照,並於上方以橘色標示。
+  </div>
+</div>
+
+<script>
+// ---- Fallback snapshot (used only if the live API call fails) ----
+// Fetched from open.er-api.com, time_last_update_utc: Sun, 20 Sep 2026 00:02:31 +0000
+const FETCHED_AT = "2026-09-20 00:02 UTC (備援快照)";
+const BASE = "USD";
+const API_URL = "https://open.er-api.com/v6/latest/" + BASE;
+const FALLBACK_RATES = {
+  USD: 1, TWD: 31.836666, JPY: 157.140885, EUR: 0.871291, GBP: 0.747943,
+  CNY: 6.718405, HKD: 7.845294, KRW: 1386.744186, SGD: 1.276628, AUD: 1.404923,
+  CAD: 1.399127, CHF: 0.823432, THB: 33.356156, MYR: 4.0815, IDR: 17767.843756,
+  PHP: 62.839511, VND: 26127.618517, NZD: 1.749184, INR: 95.940282, ZAR: 16.267228,
+  AED: 3.6725, SAR: 3.75, TRY: 48.803762, RUB: 84.326779, MXN: 17.212297,
+  BRL: 5.134105, PLN: 3.802076, SEK: 9.835574, NOK: 9.420484, DKK: 6.518522,
+  CZK: 21.205377, HUF: 317.164426, ILS: 3.03391, KWD: 0.309208, QAR: 3.64,
+  BHD: 0.376, OMR: 0.384497, EGP: 52.137035, PKR: 278.631272, BDT: 123.324304,
+  LKR: 331.272976, NGN: 1335.694724, KES: 129.51513, ARS: 1512.3332, CLP: 960.836786,
+  COP: 3140.322314, PEN: 3.380373, RON: 4.587526, XDR: 0.732091
+};
+
+// Chinese display names
+const NAMES = {
+  USD: "美元", TWD: "新台幣", JPY: "日圓", EUR: "歐元", GBP: "英鎊",
+  CNY: "人民幣", HKD: "港幣", KRW: "韓元", SGD: "新加坡幣", AUD: "澳幣",
+  CAD: "加拿大幣", CHF: "瑞士法郎", THB: "泰銖", MYR: "馬來西亞令吉", IDR: "印尼盾",
+  PHP: "菲律賓披索", VND: "越南盾", NZD: "紐西蘭幣", INR: "印度盧比", ZAR: "南非蘭特",
+  AED: "阿聯酋迪拉姆", SAR: "沙烏地里亞爾", TRY: "土耳其里拉", RUB: "俄羅斯盧布", MXN: "墨西哥披索",
+  BRL: "巴西雷亞爾", PLN: "波蘭茲羅提", SEK: "瑞典克朗", NOK: "挪威克朗", DKK: "丹麥克朗",
+  CZK: "捷克克朗", HUF: "匈牙利福林", ILS: "以色列新謝克爾", KWD: "科威特第納爾", QAR: "卡達里亞爾",
+  BHD: "巴林第納爾", OMR: "阿曼里亞爾", EGP: "埃及鎊", PKR: "巴基斯坦盧比", BDT: "孟加拉塔卡",
+  LKR: "斯里蘭卡盧比", NGN: "奈及利亞奈拉", KES: "肯亞先令", ARS: "阿根廷披索", CLP: "智利披索",
+  COP: "哥倫比亞披索", PEN: "秘魯索爾", RON: "羅馬尼亞列伊", XDR: "特別提款權"
+};
+
+const CODES = Object.keys(FALLBACK_RATES);
+let currentRates = Object.assign({}, FALLBACK_RATES);
+let currentSource = "fallback"; // "live" | "fallback"
+
+// Build a searchable index: code, chinese name -> code
+function matchList(query) {
+  const q = query.trim().toUpperCase();
+  const qLower = query.trim();
+  if (!q) return CODES.slice(0, 8).map(c => c);
+  const byCode = CODES.filter(c => c.startsWith(q));
+  const byName = CODES.filter(c => !byCode.includes(c) && NAMES[c] && NAMES[c].includes(qLower));
+  const byCodeContains = CODES.filter(c => !byCode.includes(c) && !byName.includes(c) && c.includes(q));
+  return [...byCode, ...byName, ...byCodeContains].slice(0, 10);
+}
+
+function setupCombo(inputId, dropdownId, nameId, onChange) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  const nameEl = document.getElementById(nameId);
+
+  function renderName() {
+    const code = input.value.trim().toUpperCase();
+    if (currentRates[code]) {
+      nameEl.textContent = NAMES[code] ? (code + " · " + NAMES[code]) : code;
+      input.dataset.valid = "1";
+    } else {
+      nameEl.textContent = code ? "查無此幣別代碼" : "";
+      input.dataset.valid = "0";
+    }
+  }
+
+  function renderDropdown() {
+    const list = matchList(input.value);
+    if (list.length === 0) { dropdown.classList.remove('open'); return; }
+    dropdown.innerHTML = list.map(c =>
+      `<div class="opt" data-code="${c}"><span class="c">${c}</span><span class="n">${NAMES[c] || ''}</span></div>`
+    ).join('');
+    dropdown.classList.add('open');
+  }
+
+  input.addEventListener('input', () => {
+    renderName();
+    renderDropdown();
+    onChange();
+  });
+  input.addEventListener('focus', () => {
+    renderDropdown();
+  });
+  input.addEventListener('blur', () => {
+    setTimeout(() => dropdown.classList.remove('open'), 120);
+  });
+  dropdown.addEventListener('mousedown', (e) => {
+    const opt = e.target.closest('.opt');
+    if (!opt) return;
+    input.value = opt.dataset.code;
+    renderName();
+    dropdown.classList.remove('open');
+    onChange();
+  });
+
+  renderName();
+  return { input, renderName };
+}
+
+function formatNumber(n) {
+  if (!isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  let decimals = 2;
+  if (abs !== 0 && abs < 1) decimals = 6;
+  else if (abs < 10) decimals = 4;
+  return n.toLocaleString('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: 2 });
+}
+
+function convert() {
+  const fromCode = fromCombo.input.value.trim().toUpperCase();
+  const toCode = toCombo.input.value.trim().toUpperCase();
+  const amount = parseFloat(amountInput.value);
+
+  const resultValue = document.getElementById('resultValue');
+  const resultCode = document.getElementById('resultCode');
+  const rateLine = document.getElementById('rateLine');
+  const invRateLine = document.getElementById('invRateLine');
+
+  if (!currentRates[fromCode] || !currentRates[toCode] || isNaN(amount)) {
+    resultValue.textContent = "—";
+    resultCode.textContent = "";
+    rateLine.textContent = "—";
+    invRateLine.textContent = "—";
+    return;
+  }
+
+  const rate = currentRates[toCode] / currentRates[fromCode];
+  const converted = amount * rate;
+
+  resultValue.textContent = formatNumber(converted);
+  resultCode.textContent = toCode + (NAMES[toCode] ? " " + NAMES[toCode] : "");
+
+  rateLine.textContent = `1 ${fromCode} = ${formatNumber(rate)} ${toCode}`;
+  invRateLine.textContent = `1 ${toCode} = ${formatNumber(1 / rate)} ${fromCode}`;
+}
+
+const fromCombo = setupCombo('fromInput', 'fromDropdown', 'fromName', convert);
+const toCombo = setupCombo('toInput', 'toDropdown', 'toName', convert);
+
+document.getElementById('amountInput').addEventListener('input', convert);
+
+document.getElementById('swapBtn').addEventListener('click', () => {
+  const a = fromCombo.input.value;
+  const b = toCombo.input.value;
+  fromCombo.input.value = b;
+  toCombo.input.value = a;
+  fromCombo.renderName();
+  toCombo.renderName();
+  convert();
+});
+
+document.getElementById('fetchedAt').textContent = FETCHED_AT;
+
+// ---- Live rate fetching ----
+const statusLine = document.getElementById('statusLine');
+const statusText = document.getElementById('statusText');
+const refreshBtn = document.getElementById('refreshBtn');
+const refreshLabel = document.getElementById('refreshLabel');
+
+function nowLabel() {
+  const d = new Date();
+  return d.toLocaleTimeString('zh-TW', { hour12: false });
+}
+
+function setStatus(kind, text) {
+  statusLine.classList.remove('ok', 'error');
+  statusLine.classList.add(kind === 'error' ? 'error' : 'ok');
+  statusText.textContent = text;
+}
+
+async function fetchLiveRates() {
+  refreshBtn.disabled = true;
+  refreshBtn.classList.add('spinning');
+  refreshLabel.textContent = "查詢中…";
+  setStatus('ok', '正在查詢即時匯率…');
+
+  try {
+    const resp = await fetch(API_URL, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (data.result !== 'success' || !data.rates) throw new Error('回應格式錯誤');
+
+    // Merge live rates into currentRates, keeping only codes we display
+    const merged = {};
+    CODES.forEach(c => {
+      merged[c] = (typeof data.rates[c] === 'number') ? data.rates[c] : currentRates[c];
+    });
+    currentRates = merged;
+    currentSource = 'live';
+
+    const updatedUtc = data.time_last_update_utc || '';
+    setStatus('ok', `即時查詢成功 · 匯率更新於 ${updatedUtc} · 本機查詢時間 ${nowLabel()}`);
+  } catch (err) {
+    currentRates = Object.assign({}, FALLBACK_RATES);
+    currentSource = 'fallback';
+    setStatus('error', `即時查詢失敗(${err.message}),已改用備援快照 ${FETCHED_AT}`);
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.classList.remove('spinning');
+    refreshLabel.textContent = "更新匯率";
+    convert();
+  }
+}
+
+refreshBtn.addEventListener('click', fetchLiveRates);
+
+// Auto-fetch on page load
+fetchLiveRates();
+
+// Theme toggle
+const themeToggle = document.getElementById('themeToggle');
+themeToggle.addEventListener('click', () => {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  if (current === 'light') {
+    root.setAttribute('data-theme', 'dark');
+  } else if (current === 'dark') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', 'light');
+  }
+});
+
+convert();
+</script>
+</body>
+</html>
