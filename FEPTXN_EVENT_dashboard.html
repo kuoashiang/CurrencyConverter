@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FEPTXN_EVENT 交易節點效能分析</title>
+<style>
+:root{font-family:Arial,"Microsoft JhengHei",sans-serif;color:#17263b;background:#f3f6fa;font-size:14px}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}.app{max-width:1440px;margin:auto;padding:28px 32px 50px}.header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:23px}.header h1{font-size:25px;margin:0 0 6px}.header p,.hint{color:#687990;margin:0}.demo{color:#176ca8;background:#e6f2fb;border-radius:20px;padding:7px 12px;font-size:12px;white-space:nowrap}.filters,.panel,.stat{background:#fff;border:1px solid #e1e8f0;border-radius:12px;box-shadow:0 2px 10px #1f3a5c08}.filters{padding:18px;margin-bottom:16px}.filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:6px;min-width:0}.field label{color:#596b82;font-size:12px;font-weight:600}.field input,.field select{height:39px;border:1px solid #cfdae7;border-radius:7px;background:#fff;color:#17263b;padding:0 10px;min-width:0;width:100%}.actions{display:flex;gap:9px;margin-top:16px}.primary,.secondary{border-radius:7px;padding:9px 17px;font-weight:600}.primary{background:#1768a7;color:#fff;border:1px solid #1768a7}.secondary{background:#fff;color:#37516c;border:1px solid #cfdae7}.status{align-self:center;margin-left:auto;color:#65788e;font-size:12px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.stat{padding:16px}.stat-label{font-size:12px;color:#66798e}.stat strong{font-size:25px;display:block;margin:7px 0 3px;font-variant-numeric:tabular-nums}.stat small{font-size:11px;color:#79899b}.panel{padding:18px;margin-bottom:15px}.panel-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:17px}.panel h2{font-size:17px;margin:0 0 4px}.panel .hint{font-size:12px}.unit{font-size:12px;color:#687990;white-space:nowrap}.node-head,.node-row{display:grid;grid-template-columns:180px minmax(120px,1fr) 90px 90px 100px;gap:15px;align-items:center}.node-head{color:#718399;font-size:12px;padding:0 0 9px;border-bottom:1px solid #e5ebf2}.node-row{padding:12px 0;border-bottom:1px solid #eef2f6}.node-row:last-of-type{border-bottom:0}.node-label strong{display:block}.node-label small{color:#8290a0;font-size:11px}.bar-track{height:12px;background:#edf3f8;border-radius:20px;overflow:hidden}.bar{height:100%;background:#6b9dca;border-radius:20px}.node-row:first-of-type .bar{background:#2879b8}.num{text-align:right;font-variant-numeric:tabular-nums}.note{font-size:11px;color:#79899b;margin:13px 0 0}.table-scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:800px}th,td{padding:11px 10px;border-bottom:1px solid #e9eef4;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}th{font-size:12px;color:#63778e;background:#f3f7fb;font-weight:600}td{font-size:12px}th:first-child,td:first-child,th:nth-child(2),td:nth-child(2),th:nth-child(3),td:nth-child(3),th:nth-child(4),td:nth-child(4){text-align:left}tbody tr:last-child td{border-bottom:0}.group-row{cursor:pointer}.group-row:hover,.group-row.selected{background:#eaf4fc}.mono{font-family:Consolas,monospace}.muted{color:#9aa7b4}.warm{color:#b06b17;font-weight:600}.green{color:#207e69}.link{border:0;background:none;color:#1768a7;padding:0;font-weight:600}.empty{text-align:center;padding:28px;color:#718399}.detail-head{display:flex;gap:12px;align-items:center}.detail-head .link{margin-left:auto}.error{color:#ac3e3e;font-size:12px;margin-top:9px;min-height:15px}.pill{display:inline-block;padding:3px 7px;border-radius:12px;background:#eaf4fc;color:#236b9d;font-size:11px}.pill.local{background:#edf6ef;color:#3f8053}@media(max-width:900px){.filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.node-head,.node-row{grid-template-columns:145px minmax(70px,1fr) 68px 68px 68px;gap:8px}}@media(max-width:600px){.app{padding:16px}.header h1{font-size:21px}.filter-grid{grid-template-columns:1fr}.node-head,.node-row{grid-template-columns:110px minmax(45px,1fr) 50px 50px;gap:5px}.node-head>*:last-child,.node-row>*:last-child{display:none}.stats{gap:8px}.stat{padding:12px}.stat strong{font-size:20px}.status{display:none}}
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="header"><div><h1>交易節點效能分析</h1><p>FEPTXN_EVENT｜依主機、通道、交易別與交易路徑查看平均處理時間</p></div><span class="demo">固定示例資料 · 無需連線</span></div>
+  <form id="queryForm" class="filters">
+    <div class="filter-grid">
+      <div class="field"><label for="dateFrom">開始日期</label><input id="dateFrom" type="date" value="2026-11-07"></div>
+      <div class="field"><label for="dateTo">結束日期</label><input id="dateTo" type="date" value="2026-11-09"></div>
+      <div class="field"><label for="channel">通道 Channel</label><select id="channel"><option value="">全部通道</option></select></div>
+      <div class="field"><label for="messageId">交易別 MessageId</label><select id="messageId"><option value="">全部交易</option></select></div>
+      <div class="field"><label for="route">交易路徑</label><select id="route"><option value="">全部路徑</option><option value="跨行">跨行</option><option value="自行">自行</option></select></div>
+      <div class="field"><label for="hostRole">主機維度</label><select id="hostRole"><option value="gatewayHost">入口主機</option><option value="serviceHost">服務主機</option><option value="aaHost">AA 主機</option></select></div>
+      <div class="field"><label for="host">主機名稱</label><select id="host"><option value="">全部主機</option></select></div>
+    </div>
+    <div class="actions"><button type="submit" class="primary">查詢</button><button type="button" id="resetButton" class="secondary">清除條件</button><span id="queryStatus" class="status" aria-live="polite"></span></div>
+    <div id="queryError" class="error" role="alert"></div>
+  </form>
+  <section class="stats" aria-label="交易摘要">
+    <div class="stat"><span class="stat-label">符合條件交易</span><strong id="countValue">—</strong><small>含時間不完整的交易</small></div>
+    <div class="stat"><span class="stat-label">端到端平均</span><strong id="averageValue">—</strong><small>Gateway 回覆 − Gateway 接收，ms</small></div>
+    <div class="stat"><span class="stat-label">端到端 P95</span><strong id="p95Value">—</strong><small>第 95 百分位，ms</small></div>
+    <div class="stat"><span class="stat-label">必要節點完整率</span><strong id="completeValue">—</strong><small>依自行／跨行路徑判定</small></div>
+  </section>
+  <section class="panel" aria-labelledby="nodeTitle"><div class="panel-head"><div><h2 id="nodeTitle">各節點平均耗時</h2><p class="hint">每段以對應的起訖時間計算；缺少任一時間即不納入該段平均</p></div><span class="unit">單位：毫秒（ms）</span></div>
+    <div class="node-head"><span>節點區間</span><span>平均耗時比較</span><span class="num">平均</span><span class="num">P95</span><span class="num">樣本數</span></div><div id="nodeRows"></div><p class="note">Gateway、Service、AA 等區間可能互相包含，節點平均值不可直接相加。</p>
+  </section>
+  <section class="panel" aria-labelledby="groupTitle"><div class="panel-head"><div><h2 id="groupTitle">主機 × 通道 × 交易別</h2><p class="hint">點選一列，可只看該群組的交易明細；各欄為平均毫秒</p></div><span class="unit" id="hostDimensionLabel"></span></div><div class="table-scroll"><table><thead><tr><th>主機</th><th>通道</th><th>交易別</th><th>路徑</th><th>筆數</th><th>端到端</th><th>Service</th><th>AA</th><th>CBS / T24</th><th>FISC</th></tr></thead><tbody id="groupRows"></tbody></table></div>
+  </section>
+  <section class="panel" aria-labelledby="detailTitle"><div class="panel-head detail-head"><div><h2 id="detailTitle">交易明細</h2><p class="hint" id="detailHint">點選上方群組可縮小範圍</p></div><button id="clearGroup" type="button" class="link" hidden>顯示全部</button></div><div class="table-scroll"><table><thead><tr><th>TxRquid</th><th>時間</th><th>入口主機</th><th>交易別</th><th>路徑</th><th>端到端</th><th>Service</th><th>AA</th><th>CBS / T24</th><th>FISC</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+  </section>
+</main>
+<script>
+const messageNames={"0100":"提款 (0100)","0200":"轉帳 (0200)","0300":"餘額查詢 (0300)"};
+const seeds=[
+  ["2026-11-07","09:12:04","ATM","0100","跨行","ATMGW01","ATMService01","AP01",71],
+  ["2026-11-07","09:14:11","ATM","0100","跨行","ATMGW02","ATMService02","AP02",54],
+  ["2026-11-07","09:18:32","ATM","0200","自行","ATMGW01","ATMService01","AP01",45],
+  ["2026-11-07","09:23:17","WEBATM","0300","自行","WEBATMGW01","WEBATMService01","AP02",37],
+  ["2026-11-07","10:05:22","NETBANK","0200","跨行","NETGW01","NETService01","AP01",93],
+  ["2026-11-07","10:16:38","ATM","0300","自行","ATMGW02","ATMService02","AP02",34],
+  ["2026-11-07","11:04:05","WEBATM","0200","跨行","WEBATMGW01","WEBATMService01","AP01",81],
+  ["2026-11-07","11:17:45","NETBANK","0300","自行","NETGW01","NETService01","AP02",42],
+  ["2026-11-08","08:31:10","ATM","0100","跨行","ATMGW01","ATMService01","AP02",127],
+  ["2026-11-08","08:33:52","ATM","0100","跨行","ATMGW02","ATMService02","AP01",59],
+  ["2026-11-08","08:43:06","ATM","0200","自行","ATMGW02","ATMService02","AP01",51],
+  ["2026-11-08","09:02:14","WEBATM","0300","自行","WEBATMGW01","WEBATMService01","AP02",39],
+  ["2026-11-08","09:12:22","NETBANK","0200","跨行","NETGW01","NETService01","AP02",101],
+  ["2026-11-08","10:06:38","ATM","0300","自行","ATMGW01","ATMService01","AP01",32],
+  ["2026-11-08","11:15:04","WEBATM","0200","跨行","WEBATMGW01","WEBATMService01","AP01",76],
+  ["2026-11-08","13:26:20","ATM","0100","跨行","ATMGW01","ATMService01","AP02",89,"fiscReceivedAt"],
+  ["2026-11-09","08:05:16","ATM","0100","跨行","ATMGW01","ATMService01","AP01",74],
+  ["2026-11-09","08:06:44","ATM","0100","跨行","ATMGW02","ATMService02","AP02",61],
+  ["2026-11-09","08:11:33","ATM","0200","自行","ATMGW01","ATMService01","AP02",49],
+  ["2026-11-09","08:20:13","WEBATM","0300","自行","WEBATMGW01","WEBATMService01","AP01",36],
+  ["2026-11-09","09:03:59","NETBANK","0200","跨行","NETGW01","NETService01","AP01",109],
+  ["2026-11-09","09:24:31","ATM","0300","自行","ATMGW02","ATMService02","AP02",38],
+  ["2026-11-09","10:28:07","WEBATM","0200","跨行","WEBATMGW01","WEBATMService01","AP01",84],
+  ["2026-11-09","11:37:12","NETBANK","0300","自行","NETGW01","NETService01","AP02",46],
+  ["2026-11-09","12:13:40","ATM","0100","跨行","ATMGW02","ATMService02","AP01",68],
+  ["2026-11-09","13:16:55","ATM","0200","自行","ATMGW01","ATMService01","AP02",55],
+  ["2026-11-09","14:02:11","NETBANK","0200","跨行","NETGW01","NETService01","AP01",116],
+  ["2026-11-09","15:44:29","WEBATM","0300","自行","WEBATMGW01","WEBATMService01","AP02",41]
+];
+const records=seeds.map((seed,index)=>{
+  const [date,time,channel,messageId,route,gatewayHost,serviceHost,aaHost,externalMs,missing]=seed;
+  const base=new Date(`${date}T${time}`).getTime();
+  const at=offset=>base+offset;
+  const serviceStart=6+(index%3),aaStart=serviceStart+7+(index%4),externalStart=aaStart+11+(index%5);
+  const externalEnd=externalStart+externalMs,aaEnd=externalEnd+8+(index%3),serviceEnd=aaEnd+6+(index%4),gatewayEnd=serviceEnd+8+(index%3);
+  const row={txRquid:`30000000-0000-4000-8000-${(index+1).toString(16).padStart(12,"0")}`,date,time,channel,messageId,route,gatewayHost,serviceHost,aaHost,gatewayReceivedAt:at(0),serviceReceivedAt:at(serviceStart),aaReceivedAt:at(aaStart),aaReturnedAt:at(aaEnd),serviceReturnedAt:at(serviceEnd),gatewayReturnedAt:at(gatewayEnd)};
+  if(route==="自行"){row.cbsSendedAt=at(externalStart);row.cbsReceivedAt=at(externalEnd)}else{row.fiscSendedAt=at(externalStart);row.fiscReceivedAt=at(externalEnd)}
+  if(missing)delete row[missing];
+  return row;
+});
+const $=id=>document.getElementById(id);
+const nodes=[
+  {name:"Gateway",sub:"接收 → 回覆",start:"gatewayReceivedAt",end:"gatewayReturnedAt"},
+  {name:"Service",sub:"接收 → 回覆",start:"serviceReceivedAt",end:"serviceReturnedAt"},
+  {name:"AA",sub:"接收 → 回覆",start:"aaReceivedAt",end:"aaReturnedAt"},
+  {name:"CBS / T24",sub:"送出 → 收到回覆",start:"cbsSendedAt",end:"cbsReceivedAt"},
+  {name:"FISC",sub:"送出 → 收到回覆",start:"fiscSendedAt",end:"fiscReceivedAt"}
+];
+let currentRecords=[],selectedGroup=null;
+const number=value=>value.toLocaleString("zh-TW");
+const duration=(row,node)=>Number.isFinite(row[node.start])&&Number.isFinite(row[node.end])?row[node.end]-row[node.start]:null;
+const values=(rows,node)=>rows.map(row=>duration(row,node)).filter(Number.isFinite);
+const average=items=>items.length?items.reduce((total,value)=>total+value,0)/items.length:null;
+const percentile=(items,p)=>{if(!items.length)return null;const sorted=[...items].sort((a,b)=>a-b);return sorted[Math.ceil(p*sorted.length)-1]};
+const display=value=>value===null?"—":number(Math.round(value));
+const cell=value=>value===null?'<span class="muted">—</span>':display(value);
+const isComplete=row=>nodes.slice(0,3).every(node=>duration(row,node)!==null)&&duration(row,nodes[row.route==="自行"?3:4])!==null;
+function populateSelect(select,items,label){const previous=select.value;select.innerHTML=`<option value="">${label}</option>`;items.forEach(item=>{const option=document.createElement("option");option.value=item.value;option.textContent=item.text;select.appendChild(option)});select.value=items.some(item=>item.value===previous)?previous:""}
+function updateHosts(){const role=$("hostRole").value;populateSelect($("host"),[...new Set(records.map(row=>row[role]))].sort().map(value=>({value,text:value})),"全部主機")}
+populateSelect($("channel"),[...new Set(records.map(row=>row.channel))].sort().map(value=>({value,text:value})),"全部通道");
+populateSelect($("messageId"),Object.keys(messageNames).map(value=>({value,text:messageNames[value]})),"全部交易");
+updateHosts();
+$("hostRole").addEventListener("change",updateHosts);
+function groupKey(row,role){return [row[role],row.channel,row.messageId,row.route].join("|")}
+function renderStats(rows){const total=values(rows,nodes[0]);$("countValue").textContent=number(rows.length);$("averageValue").textContent=total.length?`${display(average(total))} ms`:"—";$("p95Value").textContent=total.length?`${display(percentile(total,.95))} ms`:"—";$("completeValue").textContent=rows.length?`${(rows.filter(isComplete).length/rows.length*100).toFixed(1)}%`:"—"}
+function renderNodes(rows){const max=Math.max(1,...nodes.map(node=>average(values(rows,node))??0));$("nodeRows").innerHTML=nodes.map(node=>{const durations=values(rows,node),avg=average(durations);return `<div class="node-row"><div class="node-label"><strong>${node.name}</strong><small>${node.sub}</small></div><div class="bar-track"><div class="bar" style="width:${avg===null?0:Math.max(2,avg/max*100).toFixed(1)}%"></div></div><div class="num">${cell(avg)}</div><div class="num">${cell(percentile(durations,.95))}</div><div class="num">${number(durations.length)}</div></div>`}).join("")}
+function renderGroups(rows){const role=$("hostRole").value,roleLabel=$("hostRole").selectedOptions[0].textContent;$("hostDimensionLabel").textContent=`主機維度：${roleLabel}`;const groups=new Map();rows.forEach(row=>{const key=groupKey(row,role);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row)});const entries=[...groups].sort((a,b)=>(average(values(b[1],nodes[0]))??-1)-(average(values(a[1],nodes[0]))??-1));$("groupRows").innerHTML=entries.length?entries.map(([key,items])=>{const first=items[0],means=nodes.map(node=>average(values(items,node)));return `<tr class="group-row${selectedGroup===key?" selected":""}" data-key="${key}"><td>${first[role]}</td><td>${first.channel}</td><td>${messageNames[first.messageId]}</td><td><span class="pill ${first.route==="自行"?"local":""}">${first.route}</span></td><td>${number(items.length)}</td>${means.map(value=>`<td>${cell(value)}</td>`).join("")}</tr>`}).join(""):'<tr><td colspan="10" class="empty">沒有符合條件的交易</td></tr>';$("groupRows").querySelectorAll(".group-row").forEach(row=>row.addEventListener("click",()=>{selectedGroup=row.dataset.key;renderGroups(currentRecords);renderDetails(currentRecords)}))}
+function renderDetails(rows){const role=$("hostRole").value,shown=selectedGroup?rows.filter(row=>groupKey(row,role)===selectedGroup):rows;$("detailHint").textContent=selectedGroup?`目前顯示 ${number(shown.length)} 筆群組交易`:`目前顯示 ${number(shown.length)} 筆交易`;$("clearGroup").hidden=!selectedGroup;$("detailRows").innerHTML=shown.length?shown.map(row=>`<tr><td class="mono">${row.txRquid}</td><td>${row.date} ${row.time}</td><td>${row.gatewayHost}</td><td>${messageNames[row.messageId]}</td><td>${row.route}</td>${nodes.map(node=>`<td>${cell(duration(row,node))}</td>`).join("")}</tr>`).join(""):'<tr><td colspan="10" class="empty">沒有符合條件的交易</td></tr>'}
+function query(){const from=$("dateFrom").value,to=$("dateTo").value;$("queryError").textContent="";if(from&&to&&from>to){$("queryError").textContent="開始日期不可晚於結束日期。";return}const role=$("hostRole").value;currentRecords=records.filter(row=>(!from||row.date>=from)&&(!to||row.date<=to)&&(!$("channel").value||row.channel===$("channel").value)&&(!$("messageId").value||row.messageId===$("messageId").value)&&(!$("route").value||row.route===$("route").value)&&(!$("host").value||row[role]===$("host").value));selectedGroup=null;renderStats(currentRecords);renderNodes(currentRecords);renderGroups(currentRecords);renderDetails(currentRecords);$("queryStatus").textContent=`已顯示 ${number(currentRecords.length)} 筆示例交易`}
+$("queryForm").addEventListener("submit",event=>{event.preventDefault();query()});
+$("resetButton").addEventListener("click",()=>{$("queryForm").reset();updateHosts();query()});
+$("clearGroup").addEventListener("click",()=>{selectedGroup=null;renderGroups(currentRecords);renderDetails(currentRecords)});
+query();
+</script>
+</body>
+</html>
